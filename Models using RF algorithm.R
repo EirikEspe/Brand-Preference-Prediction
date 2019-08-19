@@ -151,35 +151,42 @@ postResample(test_resultsRF3, testing$brand)
 # Kappa 0.8100
 
 
+# Scaling the numeric variables in the training dataset
+trainingScaled <- training
+trainingScaled[,c(1, 2, 6)] <- apply(trainingScaled[, c(1, 2, 6)], 2, scale)
 
+# Doing the same with the testing dataset
+testingScaled <- testing
+testingScaled[,c(1, 2, 6)] <- apply(testingScaled[, c(1, 2, 6)], 2, scale)
 
 
 #--- 4th Training model----
 
 
 #Train a Random Forest model with 5 mtry values. Features included are 
-# salary and age. Discretized variables with 8 bins.
-svmFit4 <- train(brand ~ salary + age, 
-                data = training, 
-                method = "svmRadial", 
-                trControl = Control, 
-                tuneLength = 5)
+# salary and age. The features are scaled to bring the features to the 
+# same level. 
+rfFit4 <- train(brand ~ salary + age, 
+                data = trainingScaled, 
+                method = "rf", 
+                trControl = Control,
+                tuneGrid = tunegrid)
 
 #Output
-svmFit4
+rfFit4
 
 
 #Results from the training
-train_resultsSVM4 <- predict(svmFit4, training)
-postResample(train_resultsSVM4, training$brand) 
-# Accuracy 0.9239
-# Kappa 0.8385
+train_resultsRF4 <- predict(rfFit4, trainingScaled)
+postResample(train_resultsRF4, trainingScaled$brand) 
+# Accuracy 0.9998
+# Kappa 0.9997
 
 #Results on test
-test_resultsSVM4 <- predict(svmFit4, testing)
-postResample(test_resultsSVM4, testing$brand)
-# Accuracy 0.9244
-# Kappa 0.8400
+test_resultsRF4 <- predict(rfFit4, testingScaled)
+postResample(test_resultsRF4, testingScaled$brand)
+# Accuracy 0.9107
+# Kappa 0.8108
 
 
 
@@ -196,11 +203,42 @@ ggplot(testing, aes(x = age, y = salary)) +
   theme(legend.position="none")
 
 
-# Plot of the errors, using the SVM model
-testing$predSVM <- test_resultsSVM4
+# Plot of the errors, using the RF model with salary, age and credit
+testing$predRF <- test_resultsRF2
 
 ggplot(testing, aes(x = age, y = salary)) +
-  geom_point(aes(color = (brand != predSVM))) +
-  labs(title = "SVM model errors") +
+  geom_point(aes(color = (brand != predRF))) +
+  labs(title = "RF model errors") +
   scale_color_manual(values = c("white","red")) +
   theme(legend.position="none")
+
+
+# For comparison with SVM
+
+#--- 1st SVM Training model----
+
+
+#Train a SVM model with tuneLength = 5. Features included are 
+# salary and age. The features are scaled to bring the features to the 
+# same level. 
+svmFit <- train(brand ~ salary + age, 
+                data = trainingScaled, 
+                method = "svmRadial", 
+                trControl = Control,
+                tuneLength = 5)
+
+#Output
+svmFit
+
+
+#Results from the training
+train_resultsSVM <- predict(svmFit, trainingScaled)
+postResample(train_resultsSVM, trainingScaled$brand) 
+# Accuracy 0.9251
+# Kappa 0.8411
+
+#Results on test
+test_resultsSVM <- predict(svmFit, testingScaled)
+postResample(test_resultsSVM, testingScaled$brand)
+# Accuracy 0.9285
+# Kappa 0.8488
